@@ -470,21 +470,20 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SessionEnd'];
-const slash = (p) => p.replace(/\\/g, '/');
-const hookScript = slash(path.join(__dirname, 'hook.js'));
-const command = `"${slash(process.execPath)}" "${hookScript}"`;
+const hookScript = path.join(__dirname, 'hook.js');
 
 const settingsFile = path.join(os.homedir(), '.claude', 'settings.json');
 const settings = fs.existsSync(settingsFile)
   ? JSON.parse(fs.readFileSync(settingsFile, 'utf8').replace(/^\uFEFF/, ''))
   : {};
 const hooks = settings.hooks || {};
-const isOurs = (group) => (group.hooks || []).some((hook) => (hook.command || '').includes(hookScript));
+const isOurs = (group) => (group.hooks || []).some((hook) => (hook.args || []).includes(hookScript));
 const updatedHooks = { ...hooks };
 for (const event of EVENTS) {
   updatedHooks[event] = [
     ...(hooks[event] || []).filter((group) => !isOurs(group)),
-    { hooks: [{ type: 'command', command, async: true }] },
+    // Exec form (command + args): no shell, so the space in the folder name needs no quoting.
+    { hooks: [{ type: 'command', command: process.execPath, args: [hookScript], async: true }] },
   ];
 }
 if (fs.existsSync(settingsFile)) fs.copyFileSync(settingsFile, `${settingsFile}.bak`);
