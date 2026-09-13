@@ -1,13 +1,13 @@
 {
-  "name": "claude-discord-presence",
+  "name": "presence-for-claude",
   "version": "1.0.0",
   "description": "Discord Rich Presence for Claude Code on Windows: shows the repo, branch, current activity and model.",
   "author": {
     "name": "goncalooliveira03",
     "url": "https://github.com/goncalooliveira03"
   },
-  "homepage": "https://github.com/goncalooliveira03/claude-discord-presence",
-  "repository": "https://github.com/goncalooliveira03/claude-discord-presence",
+  "homepage": "https://github.com/goncalooliveira03/presence-for-claude",
+  "repository": "https://github.com/goncalooliveira03/presence-for-claude",
   "license": "MIT",
   "keywords": ["discord", "rich-presence", "windows"],
   "hooks": "./hooks/hooks.json"

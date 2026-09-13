@@ -1,6 +1,6 @@
-![Claude Discord Presence](assets/banner.png)
+![Presence for Claude](assets/banner.png)
 
-[![test](https://github.com/goncalooliveira03/claude-discord-presence/actions/workflows/test.yml/badge.svg)](https://github.com/goncalooliveira03/claude-discord-presence/actions/workflows/test.yml)
+[![test](https://github.com/goncalooliveira03/presence-for-claude/actions/workflows/test.yml/badge.svg)](https://github.com/goncalooliveira03/presence-for-claude/actions/workflows/test.yml)
 ![Windows](https://img.shields.io/badge/platform-Windows-0078D4)
 ![Node.js 20+](https://img.shields.io/badge/node-20%2B-339933)
 ![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
@@ -34,19 +34,21 @@ Discord only shows activities when **Share my activity** is on (User Settings â†
 Run these two commands inside Claude Code:
 
 ```
-/plugin marketplace add goncalooliveira03/claude-discord-presence
-/plugin install claude-discord-presence@claude-discord-presence
+/plugin marketplace add goncalooliveira03/presence-for-claude
+/plugin install presence-for-claude@presence-for-claude
 ```
 
 Restart Claude Code. The background process starts with your first session and keeps running after it ends.
+
+Installed it before the project was renamed from `claude-discord-presence`? Remove that plugin from the `/plugin` menu, then run the two commands above. Your settings are copied over.
 
 ### From source
 
 This method also starts the presence when you sign in to Windows, before you open Claude Code. Open a terminal and run:
 
 ```bash
-git clone https://github.com/goncalooliveira03/claude-discord-presence.git
-cd claude-discord-presence
+git clone https://github.com/goncalooliveira03/presence-for-claude.git
+cd presence-for-claude
 node install.js
 ```
 
@@ -72,7 +74,7 @@ Anyone who can see your Discord profile can see your repo and branch names.
 
 ## Settings
 
-Put your settings in `~/.claude/discord-presence/config.json`. The file works with both install methods, survives updates, and changes apply within a few seconds.
+Put your settings in `~/.claude/presence-for-claude/config.json`. The file works with both install methods, survives updates, and changes apply within a few seconds.
 
 ```json
 { "language": "pt" }
@@ -118,7 +120,7 @@ This removes the hooks from `~/.claude/settings.json` (the previous file is kept
 ```mermaid
 flowchart LR
   CC[Claude Code] -- hook events --> H[hook.js]
-  H -- session state --> S[(~/.claude/discord-presence)]
+  H -- session state --> S[(~/.claude/presence-for-claude)]
   S --> D[daemon.js]
   G[git + transcript] --> D
   D -- local named pipe --> DC[Discord]
@@ -135,7 +137,7 @@ The project has no npm dependencies and makes no network requests of its own.
 
 **Nothing shows up on Discord.** Check that Share my activity is on, and that you restarted Claude Code after installing.
 
-**Still nothing.** Open `%USERPROFILE%\.claude\discord-presence\daemon.log`. You should see `connected to Discord`. Hook errors go to `hook-error.log` in the same folder.
+**Still nothing.** Open `%USERPROFILE%\.claude\presence-for-claude\daemon.log`. You should see `connected to Discord`. Hook errors go to `hook-error.log` in the same folder.
 
 **Old or missing icon.** Discord caches images. Wait a few minutes or press Ctrl+R in Discord.
 

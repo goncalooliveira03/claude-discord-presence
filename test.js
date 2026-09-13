@@ -66,6 +66,14 @@ for (const event of EVENTS) {
   ]);
 }
 
+// Plugin id and marketplace must carry the project name.
+const plugin = require('./.claude-plugin/plugin.json');
+const marketplace = require('./.claude-plugin/marketplace.json');
+assert.strictEqual(plugin.name, 'presence-for-claude');
+assert.strictEqual(plugin.repository, 'https://github.com/goncalooliveira03/presence-for-claude');
+assert.strictEqual(marketplace.name, 'presence-for-claude');
+assert.deepStrictEqual(marketplace.plugins.map((entry) => entry.name), ['presence-for-claude']);
+
 // Rename: new data folder and lock pipe names.
 const fs = require('fs');
 const net = require('net');
