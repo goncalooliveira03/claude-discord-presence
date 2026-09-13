@@ -1,43 +1,125 @@
 # Claude Discord Presence
 
-Mostra no Discord, em vez de um jogo, o que o Claude está a fazer:
+[![test](https://github.com/goncalooliveira03/claude-discord-presence/actions/workflows/test.yml/badge.svg)](https://github.com/goncalooliveira03/claude-discord-presence/actions/workflows/test.yml)
+![Windows](https://img.shields.io/badge/platform-Windows-0078D4)
+![Node.js 20+](https://img.shields.io/badge/node-20%2B-339933)
+![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
+[![MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+Your Discord status shows what Claude Code is doing: the repo and branch you're in, what Claude is working on, and the model.
 
 ```
-A jogar Claude
-📁 nome-do-repo · 🌿 main
-✍️ A escrever código · Opus 5
-⏱ 00:42 decorrido
+Playing Claude Code
+📁 my-app · 🌿 main
+✍️ Writing code · Opus 5
+⏱ 12:04 elapsed
 ```
 
-Sem sessão de código ativa mas com a app Claude aberta, mostra só "A jogar Claude".
+With the Claude desktop app open and no coding session running, your status reads "Playing Claude". Close the app and the activity disappears.
 
-## Como funciona
+## Requirements
 
-- `hook.js`: os hooks do Claude Code (assíncronos, não atrasam nada) gravam o estado de cada sessão em `~/.claude/discord-presence/sessions/`.
-- `daemon.js`: arranca escondido com o Windows e, de 5 em 5 s, lê as sessões, descobre o repositório e a branch (git) e o modelo (transcript), e envia a atividade ao Discord pelo IPC local.
-- `presence.js`: lógica pura (estados, nomes de modelos, atividade), testada em `test.js`.
+- Windows 10 or 11
+- [Discord](https://discord.com/download) desktop app
+- [Node.js](https://nodejs.org) 20 or newer
+- [Git](https://git-scm.com)
+- Claude Code (terminal, desktop app or IDE extension)
 
-## Instalação
+## Install
 
-1. Em [discord.com/developers](https://discord.com/developers/applications) cria uma aplicação (o nome não importa: a atividade mostra "Claude Code" ou "Claude"). Em *Rich Presence → Art Assets* carrega o logo. Põe o Application ID em `clientId` e o nome do asset em `largeImage` no `config.json`.
-2. No Discord: *Definições → Privacidade de atividade → Partilhar a minha atividade* ligado.
-3. `node install.js`: adiciona os hooks a `~/.claude/settings.json` (guarda cópia em `.bak`), cria o arranque automático e inicia o daemon.
-
-Sessões do Claude Code que já estavam abertas só começam a enviar eventos depois de reiniciadas.
-
-## Testes
+Open a terminal and run:
 
 ```bash
-node test.js
+git clone https://github.com/goncalooliveira03/claude-discord-presence.git
+cd claude-discord-presence
+node install.js
 ```
 
-## Logs
+Then restart the Claude Code sessions you have open. Your Discord profile updates the next time Claude does something.
 
-- `~/.claude/discord-presence/daemon.log`: ligação ao Discord e erros.
-- `~/.claude/discord-presence/hook-error.log`: erros dos hooks.
+Keep the folder where you cloned it, because the hooks point to it. If you move it, run `node install.js` again from the new place.
 
-## Desinstalar
+Discord only shows activities when **Share my activity** is on (User Settings → Activity Privacy).
 
-1. Apaga `Claude Discord Presence.vbs` em `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`.
-2. Remove de `~/.claude/settings.json` as entradas de hooks cujo comando aponta para `hook.js`.
-3. Termina o processo `node` que corre `daemon.js` (ou reinicia o PC).
+## What your status shows
+
+| When Claude is | Status |
+|---|---|
+| working on your prompt | 🤔 Thinking |
+| editing files | ✍️ Writing code |
+| reading or searching files | 📖 Reading code |
+| running shell commands | ⚙️ Running commands |
+| searching or fetching web pages | 🌐 Searching the web |
+| running subagents | 🤖 Running agents |
+| using another tool, such as an MCP server | 🛠️ Using tools |
+| asking for permission | ✋ Waiting for approval |
+| done and waiting for you | 💬 Waiting for input |
+
+If you have several sessions open, Discord shows the one that did something most recently. A session that sits idle for 30 minutes drops out.
+
+Anyone who can see your Discord profile can see your repo and branch names.
+
+## Settings
+
+Create `config.local.json` in the project folder. Its values override `config.json`, and `git pull` leaves it alone.
+
+```json
+{ "language": "pt" }
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `language` | `en` | Status language: `en` or `pt` |
+| `clientId` | this project's Discord app | ID of your own Discord application, if you want one |
+| `largeImage` | `claude_icon_512` | Rich Presence art asset of that application |
+
+Run `node install.js` after changing settings so the background process restarts.
+
+## Update
+
+```bash
+git pull
+node install.js
+```
+
+## Uninstall
+
+```bash
+node install.js --uninstall
+```
+
+This removes the hooks from `~/.claude/settings.json` (the previous file is kept as `settings.json.bak`), the startup entry and the local state. Delete the folder afterwards.
+
+## How it works
+
+```mermaid
+flowchart LR
+  CC[Claude Code] -- hook events --> H[hook.js]
+  H -- session state --> S[(~/.claude/discord-presence)]
+  S --> D[daemon.js]
+  G[git + transcript] --> D
+  D -- local named pipe --> DC[Discord]
+```
+
+- `install.js` registers `hook.js` for seven Claude Code hook events. The hooks run in the background, so Claude doesn't wait for them.
+- `hook.js` writes a small JSON file per session with its current state.
+- `daemon.js` starts without a window when you sign in to Windows. Every 5 seconds it picks the most recent session, reads the repo and branch from git and the model from the session transcript, and sends the activity to Discord through Discord's local IPC pipe.
+- `presence.js` turns that data into the text you see. `node test.js` checks it.
+
+The project has no npm dependencies and makes no network requests of its own.
+
+## Troubleshooting
+
+**Nothing shows up on Discord.** Check that Share my activity is on, and that you restarted Claude Code after installing.
+
+**Still nothing.** Open `%USERPROFILE%\.claude\discord-presence\daemon.log`. You should see `connected to Discord`. Hook errors go to `hook-error.log` in the same folder.
+
+**Old or missing icon.** Discord caches images. Wait a few minutes or press Ctrl+R in Discord.
+
+## Disclaimer
+
+This is a personal project, not affiliated with or endorsed by Anthropic or Discord. Claude is a trademark of Anthropic.
+
+## License
+
+[MIT](LICENSE)

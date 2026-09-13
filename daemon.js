@@ -4,8 +4,11 @@ const net = require('net');
 const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { pickSession, buildActivity, modelName, DATA_DIR, SESSIONS_DIR } = require('./presence');
-const { clientId, largeImage } = require('./config.json');
+const { pickSession, buildActivity, modelName, DATA_DIR, SESSIONS_DIR, LOCK_PIPE } = require('./presence');
+
+// config.local.json (gitignored) overrides config.json, so `git pull` never conflicts with your settings.
+const localConfig = path.join(__dirname, 'config.local.json');
+const config = { ...require('./config.json'), ...(fs.existsSync(localConfig) ? require(localConfig) : {}) };
 
 const run = promisify(execFile);
 const POLL_MS = 5000; // ≤ 4 updates per 20 s, under Discord's limit of 5
@@ -41,7 +44,7 @@ function openPipe(index) {
 
 function handshake(pipe) {
   return new Promise((resolve, reject) => {
-    setTimeout(() => reject(new Error('sem resposta do Discord')), HANDSHAKE_TIMEOUT_MS);
+    setTimeout(() => reject(new Error('no reply from Discord')), HANDSHAKE_TIMEOUT_MS);
     let buffer = Buffer.alloc(0);
     pipe.on('data', (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
@@ -51,10 +54,10 @@ function handshake(pipe) {
         const message = JSON.parse(buffer.subarray(8, 8 + length).toString('utf8'));
         buffer = buffer.subarray(8 + length);
         if (op === OP.FRAME && message.evt === 'READY') resolve();
-        if (op === OP.FRAME && message.evt === 'ERROR') log(`erro do Discord: ${message.data?.message}`);
+        if (op === OP.FRAME && message.evt === 'ERROR') log(`Discord error: ${message.data?.message}`);
         if (op === OP.PING) pipe.write(frame(OP.PONG, message));
         if (op === OP.CLOSE) {
-          log(`Discord fechou a ligação: ${message.message}`);
+          log(`Discord closed the connection: ${message.message}`);
           reject(new Error(message.message));
           pipe.destroy();
         }
@@ -65,11 +68,11 @@ function handshake(pipe) {
       if (socket === pipe) {
         socket = null;
         lastSent = undefined;
-        log('ligação ao Discord terminada');
+        log('disconnected from Discord');
       }
-      reject(new Error('ligação fechada'));
+      reject(new Error('connection closed'));
     });
-    pipe.write(frame(OP.HANDSHAKE, { v: 1, client_id: clientId }));
+    pipe.write(frame(OP.HANDSHAKE, { v: 1, client_id: config.clientId }));
   });
 }
 
@@ -80,9 +83,9 @@ async function connect() {
     try {
       await handshake(pipe);
       socket = pipe;
-      log(`ligado ao Discord (discord-ipc-${index})`);
+      log(`connected to Discord (discord-ipc-${index})`);
     } catch (err) {
-      log(`handshake falhou: ${err.message}`);
+      log(`handshake failed: ${err.message}`);
       pipe.destroy();
     }
   }
@@ -147,9 +150,10 @@ async function isClaudeRunning() {
 
 async function currentActivity() {
   const session = pickSession(readSessions(), Date.now());
-  if (!session) return buildActivity(null, await isClaudeRunning(), largeImage);
+  const options = { image: config.largeImage, language: config.language };
+  if (!session) return buildActivity(null, await isClaudeRunning(), options);
   const { repo, branch } = await repoAndBranch(session.cwd);
-  return buildActivity({ ...session, repo, branch, model: sessionModel(session) }, true, largeImage);
+  return buildActivity({ ...session, repo, branch, model: sessionModel(session) }, true, options);
 }
 
 async function tick() {
@@ -163,14 +167,18 @@ async function tick() {
 }
 
 async function loop() {
-  try { await tick(); } catch (err) { log(`erro: ${err.stack}`); }
+  try { await tick(); } catch (err) { log(`error: ${err.stack}`); }
   setTimeout(loop, POLL_MS);
 }
 
 // Single instance: a second copy fails to claim the pipe and exits.
-net.createServer()
+// Connecting to the pipe stops the running daemon (install.js does this before restarting or uninstalling).
+net.createServer(() => {
+  log('stopped by install.js');
+  process.exit(0);
+})
   .once('error', () => process.exit(0))
-  .listen('\\\\?\\pipe\\claude-discord-presence', () => {
-    log('daemon iniciado');
+  .listen(LOCK_PIPE, () => {
+    log('daemon started');
     loop();
   });
