@@ -2,9 +2,11 @@
 const os = require('os');
 const path = require('path');
 
-const DATA_DIR = path.join(os.homedir(), '.claude', 'discord-presence');
+const DATA_DIR = path.join(os.homedir(), '.claude', 'presence-for-claude');
+const LEGACY_DATA_DIR = path.join(os.homedir(), '.claude', 'discord-presence'); // before the rename
 const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
-const LOCK_PIPE = '\\\\?\\pipe\\claude-discord-presence';
+const LOCK_PIPE = '\\\\?\\pipe\\presence-for-claude';
+const LEGACY_LOCK_PIPE = '\\\\?\\pipe\\claude-discord-presence'; // before the rename
 const STALE_MS = 30 * 60 * 1000;
 const MAX_FIELD = 128; // Discord limit for details/state
 // Claude Code hook events we listen to. install.js and hooks/hooks.json (plugin) both register these.
@@ -95,4 +97,7 @@ function buildActivity(session, appOpen, { image, language } = {}) {
   };
 }
 
-module.exports = { DATA_DIR, SESSIONS_DIR, LOCK_PIPE, EVENTS, LABELS, stateFor, modelName, pickSession, buildActivity };
+module.exports = {
+  DATA_DIR, LEGACY_DATA_DIR, SESSIONS_DIR, LOCK_PIPE, LEGACY_LOCK_PIPE,
+  EVENTS, LABELS, stateFor, modelName, pickSession, buildActivity,
+};

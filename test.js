@@ -1,6 +1,6 @@
 // Self-check for presence.js. Run: node test.js
 const assert = require('assert');
-const { EVENTS, LABELS, stateFor, modelName, pickSession, buildActivity } = require('./presence');
+const { EVENTS, LABELS, DATA_DIR, LOCK_PIPE, stateFor, modelName, pickSession, buildActivity } = require('./presence');
 
 assert.strictEqual(modelName('claude-opus-5'), 'Opus 5');
 assert.strictEqual(modelName('claude-fable-5-1'), 'Fable 5.1');
@@ -66,4 +66,51 @@ for (const event of EVENTS) {
   ]);
 }
 
-console.log('ok');
+// Rename: new data folder and lock pipe names.
+const fs = require('fs');
+const net = require('net');
+const os = require('os');
+const path = require('path');
+const { stopDaemon, migrateLegacyConfig } = require('./lifecycle');
+
+assert.strictEqual(path.basename(DATA_DIR), 'presence-for-claude');
+assert.ok(LOCK_PIPE.endsWith('presence-for-claude'));
+
+// migrateLegacyConfig copies config.json once and never overwrites.
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pfc-test-'));
+const legacyDir = path.join(tmp, 'discord-presence');
+const newDir = path.join(tmp, 'presence-for-claude');
+assert.strictEqual(migrateLegacyConfig(legacyDir, newDir), false);
+fs.mkdirSync(legacyDir);
+fs.writeFileSync(path.join(legacyDir, 'config.json'), '{"language":"pt"}');
+assert.strictEqual(migrateLegacyConfig(legacyDir, newDir), true);
+assert.strictEqual(fs.readFileSync(path.join(newDir, 'config.json'), 'utf8'), '{"language":"pt"}');
+fs.writeFileSync(path.join(legacyDir, 'config.json'), '{"language":"en"}');
+assert.strictEqual(migrateLegacyConfig(legacyDir, newDir), false);
+assert.strictEqual(fs.readFileSync(path.join(newDir, 'config.json'), 'utf8'), '{"language":"pt"}');
+fs.rmSync(tmp, { recursive: true, force: true });
+
+// stopDaemon resolves when nothing listens, and connects to a listening daemon.
+async function checkStopDaemon() {
+  const pipePath = process.platform === 'win32'
+    ? `\\\\?\\pipe\\pfc-test-${process.pid}`
+    : path.join(os.tmpdir(), `pfc-test-${process.pid}.sock`);
+  await stopDaemon(pipePath);
+  let connected = false;
+  const server = net.createServer((conn) => {
+    connected = true;
+    conn.destroy();
+    server.close();
+  });
+  await new Promise((resolve) => server.listen(pipePath, resolve));
+  await stopDaemon(pipePath);
+  assert.strictEqual(connected, true);
+}
+
+checkStopDaemon().then(
+  () => console.log('ok'),
+  (err) => {
+    console.error(err);
+    process.exit(1);
+  },
+);
