@@ -5,7 +5,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { pickSession, buildActivity, modelName, DATA_DIR, SESSIONS_DIR } = require('./presence');
-const { clientId } = require('./config.json');
+const { clientId, largeImage } = require('./config.json');
 
 const run = promisify(execFile);
 const POLL_MS = 5000; // ≤ 4 updates per 20 s, under Discord's limit of 5
@@ -147,9 +147,9 @@ async function isClaudeRunning() {
 
 async function currentActivity() {
   const session = pickSession(readSessions(), Date.now());
-  if (!session) return buildActivity(null, await isClaudeRunning());
+  if (!session) return buildActivity(null, await isClaudeRunning(), largeImage);
   const { repo, branch } = await repoAndBranch(session.cwd);
-  return buildActivity({ ...session, repo, branch, model: sessionModel(session) }, true);
+  return buildActivity({ ...session, repo, branch, model: sessionModel(session) }, true, largeImage);
 }
 
 async function tick() {

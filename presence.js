@@ -56,13 +56,15 @@ function pickSession(sessions, now) {
 
 const clip = (text) => (text.length > MAX_FIELD ? `${text.slice(0, MAX_FIELD - 1)}…` : text);
 
-function buildActivity(session, appOpen) {
-  if (!session) return appOpen ? { assets: { large_image: 'claude', large_text: 'Claude' } } : null;
+// `name` overrides the Discord application name shown under "A jogar"; `image` is the Rich Presence asset key.
+function buildActivity(session, appOpen, image) {
+  if (!session) return appOpen ? { name: 'Claude', assets: { large_image: image, large_text: 'Claude' } } : null;
   return {
+    name: 'Claude Code',
     details: clip(session.branch ? `📁 ${session.repo} · 🌿 ${session.branch}` : `📁 ${session.repo}`),
     state: clip(session.model ? `${session.state} · ${session.model}` : session.state),
     timestamps: { start: session.startedAt },
-    assets: { large_image: 'claude', large_text: 'Claude Code' },
+    assets: { large_image: image, large_text: 'Claude Code' },
   };
 }
 

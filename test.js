@@ -35,19 +35,20 @@ assert.strictEqual(pickSession([stale], now), null);
 assert.strictEqual(pickSession([], now), null);
 
 assert.deepStrictEqual(
-  buildActivity({ repo: 'site', branch: 'main', state: '🤔 A pensar', model: 'Opus 5', startedAt: 123 }, true),
+  buildActivity({ repo: 'site', branch: 'main', state: '🤔 A pensar', model: 'Opus 5', startedAt: 123 }, true, 'logo'),
   {
+    name: 'Claude Code',
     details: '📁 site · 🌿 main',
     state: '🤔 A pensar · Opus 5',
     timestamps: { start: 123 },
-    assets: { large_image: 'claude', large_text: 'Claude Code' },
+    assets: { large_image: 'logo', large_text: 'Claude Code' },
   },
 );
-const noGit = buildActivity({ repo: 'notas', branch: null, state: '💬 À espera de ti', model: null, startedAt: 1 }, false);
+const noGit = buildActivity({ repo: 'notas', branch: null, state: '💬 À espera de ti', model: null, startedAt: 1 }, false, 'logo');
 assert.strictEqual(noGit.details, '📁 notas');
 assert.strictEqual(noGit.state, '💬 À espera de ti');
-assert.strictEqual(buildActivity({ repo: 'x'.repeat(300), branch: null, state: 's', model: null, startedAt: 1 }, false).details.length, 128);
-assert.deepStrictEqual(buildActivity(null, true), { assets: { large_image: 'claude', large_text: 'Claude' } });
-assert.strictEqual(buildActivity(null, false), null);
+assert.strictEqual(buildActivity({ repo: 'x'.repeat(300), branch: null, state: 's', model: null, startedAt: 1 }, false, 'logo').details.length, 128);
+assert.deepStrictEqual(buildActivity(null, true, 'logo'), { name: 'Claude', assets: { large_image: 'logo', large_text: 'Claude' } });
+assert.strictEqual(buildActivity(null, false, 'logo'), null);
 
 console.log('ok');

@@ -54,7 +54,9 @@ Nome: `claude-opus-5` → Opus 5, `claude-fable-5-1` → Fable 5.1,
 - `daemon.js` — instância única (named pipe de lock). A cada 5 s: lê sessões, deriva repo/branch
   (`git`) e modelo (fim do transcript), monta a atividade, envia via IPC
   (`\\?\pipe\discord-ipc-N`) só se mudou, no máximo 1 envio / 4 s. Reconecta se o Discord fechar.
-- `config.json` — `clientId` da aplicação Discord "Claude" (asset `claude`).
+- `config.json` — `clientId` da aplicação Discord e `largeImage` (chave do asset de Rich Presence).
+  A atividade envia `name` ("Claude Code" com sessão, "Claude" só com a app), que o Discord
+  mostra no lugar do nome da aplicação — o nome no Developer Portal é irrelevante.
 - `test.js` — `assert` sobre `presence.js`.
 - Instalação — hooks em `~/.claude/settings.json`; `.vbs` na pasta Arranque do Windows
   que lança `node daemon.js` sem janela.

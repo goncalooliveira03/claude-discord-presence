@@ -19,7 +19,7 @@ Sem sessão de código ativa mas com a app Claude aberta, mostra só "A jogar Cl
 
 ## Instalação
 
-1. Em [discord.com/developers](https://discord.com/developers/applications) cria uma aplicação chamada **Claude**, copia o Application ID para `config.json` e, em *Rich Presence → Art Assets*, carrega o logo com o nome `claude`.
+1. Em [discord.com/developers](https://discord.com/developers/applications) cria uma aplicação (o nome não importa: a atividade mostra "Claude Code" ou "Claude"). Em *Rich Presence → Art Assets* carrega o logo. Põe o Application ID em `clientId` e o nome do asset em `largeImage` no `config.json`.
 2. No Discord: *Definições → Privacidade de atividade → Partilhar a minha atividade* ligado.
 3. `node install.js`: adiciona os hooks a `~/.claude/settings.json` (guarda cópia em `.bak`), cria o arranque automático e inicia o daemon.
 
