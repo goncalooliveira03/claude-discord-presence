@@ -1,4 +1,4 @@
-# Claude Discord Presence
+![Claude Discord Presence](assets/banner.png)
 
 [![test](https://github.com/goncalooliveira03/claude-discord-presence/actions/workflows/test.yml/badge.svg)](https://github.com/goncalooliveira03/claude-discord-presence/actions/workflows/test.yml)
 ![Windows](https://img.shields.io/badge/platform-Windows-0078D4)
@@ -66,6 +66,10 @@ Create `config.local.json` in the project folder. Its values override `config.js
 ```json
 { "language": "pt" }
 ```
+
+![Discord activity card with the status in Portuguese](assets/activity.png)
+
+*Real screenshot with `language` set to `pt`.*
 
 | Key | Default | Meaning |
 |---|---|---|
