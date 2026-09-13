@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-discord-presence",
+  "description": "Discord Rich Presence for Claude Code on Windows.",
+  "owner": {
+    "name": "goncalooliveira03",
+    "url": "https://github.com/goncalooliveira03"
+  },
+  "plugins": [
+    {
+      "name": "claude-discord-presence",
+      "description": "Shows the repo, branch, current activity and model as your Discord status. Windows only.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

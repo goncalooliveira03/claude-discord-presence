@@ -7,6 +7,8 @@ const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 const LOCK_PIPE = '\\\\?\\pipe\\claude-discord-presence';
 const STALE_MS = 30 * 60 * 1000;
 const MAX_FIELD = 128; // Discord limit for details/state
+// Claude Code hook events we listen to. install.js and hooks/hooks.json (plugin) both register these.
+const EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SessionEnd'];
 
 const LABELS = {
   en: {
@@ -93,4 +95,4 @@ function buildActivity(session, appOpen, { image, language } = {}) {
   };
 }
 
-module.exports = { DATA_DIR, SESSIONS_DIR, LOCK_PIPE, LABELS, stateFor, modelName, pickSession, buildActivity };
+module.exports = { DATA_DIR, SESSIONS_DIR, LOCK_PIPE, EVENTS, LABELS, stateFor, modelName, pickSession, buildActivity };

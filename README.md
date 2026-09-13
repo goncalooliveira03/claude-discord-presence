@@ -27,7 +27,22 @@ With the Claude desktop app open and no coding session running, your status read
 
 ## Install
 
-Open a terminal and run:
+Discord only shows activities when **Share my activity** is on (User Settings → Activity Privacy). Pick one of the two methods below, not both.
+
+### As a Claude Code plugin
+
+Run these two commands inside Claude Code:
+
+```
+/plugin marketplace add goncalooliveira03/claude-discord-presence
+/plugin install claude-discord-presence@claude-discord-presence
+```
+
+Restart Claude Code. The background process starts with your first session and keeps running after it ends.
+
+### From source
+
+This method also starts the presence when you sign in to Windows, before you open Claude Code. Open a terminal and run:
 
 ```bash
 git clone https://github.com/goncalooliveira03/claude-discord-presence.git
@@ -35,11 +50,7 @@ cd claude-discord-presence
 node install.js
 ```
 
-Then restart the Claude Code sessions you have open. Your Discord profile updates the next time Claude does something.
-
-Keep the folder where you cloned it, because the hooks point to it. If you move it, run `node install.js` again from the new place.
-
-Discord only shows activities when **Share my activity** is on (User Settings → Activity Privacy).
+Then restart the Claude Code sessions you have open. Keep the folder where you cloned it, because the hooks point to it. If you move it, run `node install.js` again from the new place.
 
 ## What your status shows
 
@@ -61,7 +72,7 @@ Anyone who can see your Discord profile can see your repo and branch names.
 
 ## Settings
 
-Create `config.local.json` in the project folder. Its values override `config.json`, and `git pull` leaves it alone.
+Put your settings in `~/.claude/discord-presence/config.json`. The file works with both install methods, survives updates, and changes apply within a few seconds.
 
 ```json
 { "language": "pt" }
@@ -77,9 +88,13 @@ Create `config.local.json` in the project folder. Its values override `config.js
 | `clientId` | this project's Discord app | ID of your own Discord application, if you want one |
 | `largeImage` | `claude_icon_512` | Rich Presence art asset of that application |
 
-Run `node install.js` after changing settings so the background process restarts.
+With the install from source, `config.local.json` in the project folder works too, and `git pull` leaves it alone.
 
 ## Update
+
+Plugin: update it from the `/plugin` menu in Claude Code.
+
+From source:
 
 ```bash
 git pull
@@ -87,6 +102,10 @@ node install.js
 ```
 
 ## Uninstall
+
+Plugin: remove it from the `/plugin` menu in Claude Code. The background process stops when you sign out of Windows.
+
+From source:
 
 ```bash
 node install.js --uninstall
@@ -105,9 +124,9 @@ flowchart LR
   D -- local named pipe --> DC[Discord]
 ```
 
-- `install.js` registers `hook.js` for seven Claude Code hook events. The hooks run in the background, so Claude doesn't wait for them.
-- `hook.js` writes a small JSON file per session with its current state.
-- `daemon.js` starts without a window when you sign in to Windows. Every 5 seconds it picks the most recent session, reads the repo and branch from git and the model from the session transcript, and sends the activity to Discord through Discord's local IPC pipe.
+- `hooks/hooks.json` (plugin) or `install.js` (from source) registers `hook.js` for seven Claude Code hook events. The hooks run in the background, so Claude doesn't wait for them.
+- `hook.js` writes a small JSON file per session with its current state, and starts `daemon.js` when a session begins if it isn't running yet.
+- `daemon.js` runs without a window. The install from source also starts it when you sign in to Windows. Every 5 seconds it picks the most recent session, reads the repo and branch from git and the model from the session transcript, and sends the activity to Discord through Discord's local IPC pipe.
 - `presence.js` turns that data into the text you see. `node test.js` checks it.
 
 The project has no npm dependencies and makes no network requests of its own.

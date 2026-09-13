@@ -1,6 +1,6 @@
 // Self-check for presence.js. Run: node test.js
 const assert = require('assert');
-const { LABELS, stateFor, modelName, pickSession, buildActivity } = require('./presence');
+const { EVENTS, LABELS, stateFor, modelName, pickSession, buildActivity } = require('./presence');
 
 assert.strictEqual(modelName('claude-opus-5'), 'Opus 5');
 assert.strictEqual(modelName('claude-fable-5-1'), 'Fable 5.1');
@@ -56,5 +56,14 @@ assert.strictEqual(buildActivity({ ...session, repo: 'x'.repeat(300) }, false, {
 
 assert.deepStrictEqual(buildActivity(null, true, { image: 'logo' }), { name: 'Claude', assets: { large_image: 'logo', large_text: 'Claude' } });
 assert.strictEqual(buildActivity(null, false, { image: 'logo' }), null);
+
+// The plugin (hooks/hooks.json) and install.js must register the same async hook on the same events.
+const pluginHooks = require('./hooks/hooks.json').hooks;
+assert.deepStrictEqual(Object.keys(pluginHooks).sort(), [...EVENTS].sort());
+for (const event of EVENTS) {
+  assert.deepStrictEqual(pluginHooks[event], [
+    { hooks: [{ type: 'command', command: 'node', args: ['${CLAUDE_PLUGIN_ROOT}/hook.js'], async: true }] },
+  ]);
+}
 
 console.log('ok');

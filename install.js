@@ -6,10 +6,9 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const { DATA_DIR, LOCK_PIPE } = require('./presence');
+const { DATA_DIR, LOCK_PIPE, EVENTS } = require('./presence');
 
 const MIN_NODE_MAJOR = 20;
-const EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SessionEnd'];
 const uninstall = process.argv.includes('--uninstall');
 const hookScript = path.join(__dirname, 'hook.js');
 const settingsFile = path.join(os.homedir(), '.claude', 'settings.json');

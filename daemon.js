@@ -6,9 +6,27 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { pickSession, buildActivity, modelName, DATA_DIR, SESSIONS_DIR, LOCK_PIPE } = require('./presence');
 
-// config.local.json (gitignored) overrides config.json, so `git pull` never conflicts with your settings.
-const localConfig = path.join(__dirname, 'config.local.json');
-const config = { ...require('./config.json'), ...(fs.existsSync(localConfig) ? require(localConfig) : {}) };
+// Settings, later files win: config.json (defaults), config.local.json (gitignored, for clone installs),
+// ~/.claude/discord-presence/config.json (survives plugin updates). Read every tick, so edits apply without a restart.
+const CONFIG_FILES = [
+  path.join(__dirname, 'config.json'),
+  path.join(__dirname, 'config.local.json'),
+  path.join(DATA_DIR, 'config.json'),
+];
+let lastConfigError;
+
+function loadConfig() {
+  return CONFIG_FILES.reduce((config, file) => {
+    try {
+      return { ...config, ...JSON.parse(fs.readFileSync(file, 'utf8')) };
+    } catch (err) {
+      const message = `${file}: ${err.message}`;
+      if (err.code !== 'ENOENT' && message !== lastConfigError) log(`ignoring bad config ${message}`);
+      if (err.code !== 'ENOENT') lastConfigError = message;
+      return config;
+    }
+  }, {});
+}
 
 const run = promisify(execFile);
 const POLL_MS = 5000; // ≤ 4 updates per 20 s, under Discord's limit of 5
@@ -72,7 +90,7 @@ function handshake(pipe) {
       }
       reject(new Error('connection closed'));
     });
-    pipe.write(frame(OP.HANDSHAKE, { v: 1, client_id: config.clientId }));
+    pipe.write(frame(OP.HANDSHAKE, { v: 1, client_id: loadConfig().clientId }));
   });
 }
 
@@ -150,6 +168,7 @@ async function isClaudeRunning() {
 
 async function currentActivity() {
   const session = pickSession(readSessions(), Date.now());
+  const config = loadConfig();
   const options = { image: config.largeImage, language: config.language };
   if (!session) return buildActivity(null, await isClaudeRunning(), options);
   const { repo, branch } = await repoAndBranch(session.cwd);
