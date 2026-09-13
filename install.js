@@ -2,17 +2,19 @@
 //   node install.js              install, or update after `git pull`
 //   node install.js --uninstall  remove everything
 const fs = require('fs');
-const net = require('net');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const { DATA_DIR, LOCK_PIPE, EVENTS } = require('./presence');
+const { DATA_DIR, LEGACY_DATA_DIR, LOCK_PIPE, LEGACY_LOCK_PIPE, EVENTS } = require('./presence');
+const { stopDaemon, migrateLegacyConfig } = require('./lifecycle');
 
 const MIN_NODE_MAJOR = 20;
 const uninstall = process.argv.includes('--uninstall');
 const hookScript = path.join(__dirname, 'hook.js');
 const settingsFile = path.join(os.homedir(), '.claude', 'settings.json');
-const launcher = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'Claude Discord Presence.vbs');
+const startupDir = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
+const launcher = path.join(startupDir, 'Presence for Claude.vbs');
+const legacyLauncher = path.join(startupDir, 'Claude Discord Presence.vbs'); // before the rename
 
 function checkEnvironment() {
   if (process.platform !== 'win32') throw new Error('Windows only for now.');
@@ -43,27 +45,21 @@ function updateHooks() {
   fs.writeFileSync(settingsFile, `${JSON.stringify(next, null, 2)}\n`);
 }
 
-// The daemon exits as soon as something connects to its lock pipe.
-function stopDaemon() {
-  return new Promise((resolve) => {
-    const pipe = net.connect(LOCK_PIPE);
-    pipe.on('error', () => { /* not running; 'close' follows */ });
-    pipe.on('close', resolve);
-  });
-}
-
 async function main() {
   checkEnvironment();
   updateHooks();
-  await stopDaemon();
+  await Promise.all([stopDaemon(LOCK_PIPE), stopDaemon(LEGACY_LOCK_PIPE)]);
+  fs.rmSync(legacyLauncher, { force: true });
 
   if (uninstall) {
     fs.rmSync(launcher, { force: true });
     fs.rmSync(DATA_DIR, { recursive: true, force: true });
+    fs.rmSync(LEGACY_DATA_DIR, { recursive: true, force: true });
     console.log('Uninstalled. Restart any open Claude Code sessions.');
     return;
   }
 
+  if (migrateLegacyConfig(LEGACY_DATA_DIR, DATA_DIR)) console.log(`Copied your settings from ${LEGACY_DATA_DIR}.`);
   const daemon = path.join(__dirname, 'daemon.js');
   fs.writeFileSync(launcher, `CreateObject("WScript.Shell").Run """${process.execPath}"" ""${daemon}""", 0, False\r\n`);
   spawn('wscript.exe', [launcher], { detached: true, stdio: 'ignore' }).unref();

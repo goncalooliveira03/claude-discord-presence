@@ -4,10 +4,11 @@ const net = require('net');
 const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
-const { pickSession, buildActivity, modelName, DATA_DIR, SESSIONS_DIR, LOCK_PIPE } = require('./presence');
+const { pickSession, buildActivity, modelName, DATA_DIR, LEGACY_DATA_DIR, SESSIONS_DIR, LOCK_PIPE, LEGACY_LOCK_PIPE } = require('./presence');
+const { stopDaemon, migrateLegacyConfig } = require('./lifecycle');
 
 // Settings, later files win: config.json (defaults), config.local.json (gitignored, for clone installs),
-// ~/.claude/discord-presence/config.json (survives plugin updates). Read every tick, so edits apply without a restart.
+// ~/.claude/presence-for-claude/config.json (survives plugin updates). Read every tick, so edits apply without a restart.
 const CONFIG_FILES = [
   path.join(__dirname, 'config.json'),
   path.join(__dirname, 'config.local.json'),
@@ -197,7 +198,14 @@ net.createServer(() => {
   process.exit(0);
 })
   .once('error', () => process.exit(0))
-  .listen(LOCK_PIPE, () => {
+  .listen(LOCK_PIPE, async () => {
     log('daemon started');
+    try {
+      if (migrateLegacyConfig(LEGACY_DATA_DIR, DATA_DIR)) log(`copied settings from ${LEGACY_DATA_DIR}`);
+    } catch (err) {
+      log(`could not copy old settings: ${err.message}`);
+    }
+    // A daemon started before the rename listens on the old pipe and would fight over the same activity.
+    await stopDaemon(LEGACY_LOCK_PIPE);
     loop();
   });
